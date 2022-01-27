@@ -13,6 +13,7 @@ chardet=4.0.0=pypi_0
 charset-normalizer=2.0.10=pyhd8ed1ab_0
 click=8.0.3=pypi_0
 cryptography=36.0.0=pypi_0
+discord-components=2.1.2=pypi_0
 discord.py=1.7.3=pyhd8ed1ab_0
 idna=3.3=pyhd8ed1ab_0
 libcxx=12.0.0=h2f01273_0

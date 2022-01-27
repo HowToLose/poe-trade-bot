@@ -53,9 +53,9 @@ class Trade(commands.Cog):
             f'{os.getenv("POE_API_BASE")}/trade/fetch/{str.join(",", search_result["result"][:10])}?query={search_result["id"]}', headers=headers)
         items = r.json()["result"]
 
-        selection = await ctx.send("Select", components=[
+        selection = await ctx.send("請選擇想要的物品", components=[
             Select(
-                placeholder="Select a item.",
+                placeholder="請選擇",
                 options=[
                     SelectOption(label=f'{o["item"]["name"]} {o["item"]["typeLine"]} : {o["listing"]["price"]["amount"]:>10.1f} {o["listing"]["price"]["currency"]}', value=o["item"]["id"]) for o in items
                 ]
