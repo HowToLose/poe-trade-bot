@@ -1,4 +1,5 @@
 import discord
+from discord_components import DiscordComponents
 from discord.ext import commands
 from dotenv import load_dotenv
 import os
@@ -7,6 +8,7 @@ load_dotenv()
 
 # global settings
 bot = commands.Bot(command_prefix=commands.when_mentioned, description='poe trade bot!')
+DiscordComponents(bot)
 cogs_folder = 'cogs'
 
 
