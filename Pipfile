@@ -1,0 +1,35 @@
+[[source]]
+url = "https://pypi.org/simple"
+verify_ssl = true
+name = "pypi"
+
+[packages]
+aiohttp = "==3.7.4.post0"
+async-timeout = "==3.0.1"
+attrs = "==21.4.0"
+brotlipy = "==0.7.0"
+certifi = "==2021.10.8"
+cffi = "==1.15.0"
+chardet = "==4.0.0"
+charset-normalizer = "==2.0.10"
+click = "==8.0.3"
+cryptography = "==36.0.0"
+discord-components = "==2.1.2"
+"discord.py" = "==1.7.3"
+idna = "==3.3"
+multidict = "==6.0.2"
+pycparser = "==2.21"
+python-dotenv = "==0.19.2"
+requests = "==2.27.1"
+six = "==1.16.0"
+typing-extensions = "==4.0.1"
+urllib3 = "==1.26.8"
+yarl = "==1.7.2"
+pyOpenSSL = "==21.0.0"
+PySocks = "==1.7.1"
+fabric = "*"
+
+[dev-packages]
+
+[requires]
+python_version = "3.9"
