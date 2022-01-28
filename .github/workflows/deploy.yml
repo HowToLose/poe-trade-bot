@@ -1,0 +1,45 @@
+# This workflow uses actions that are not certified by GitHub.
+# They are provided by a third-party and are governed by
+# separate terms of service, privacy policy, and support
+# documentation.
+# This workflow will download a prebuilt Ruby version, install dependencies and run tests with Rake
+# For more information see: https://github.com/marketplace/actions/setup-ruby-jruby-and-truffleruby
+
+name: Deploy
+
+on:
+  workflow_dispatch:
+  workflow_call:
+    secrets:
+      ssh_private_key:
+        required: true
+      deploy_host:
+        required: true
+
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+    - name: Checkout Code
+      uses: actions/checkout@v2
+      with:
+        path: poe-trade-bot
+
+    - name: Run SSH Agent
+      uses: webfactory/ssh-agent@v0.4.1
+      with:
+        ssh-private-key: ${{ secrets.ssh_private_key }}
+
+    - name: Set up Python 3.9
+      uses: actions/setup-python@v2
+      with:
+        python-version: '3.9' # Version range or exact version of a Python version to use, using SemVer's version range syntax
+
+    - name: Deploy ${{ github.ref_name }} to server
+      run: |
+        pip install fabric
+        cd poe-trade-bot
+        fab -H ${{ secrets.deploy_host }} deploy --branch ${{ github.ref_name }}

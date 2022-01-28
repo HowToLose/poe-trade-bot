@@ -1,0 +1,12 @@
+name: Deploy to Production
+
+on:
+  push:
+    branches: [ main ]
+
+jobs:
+  deploy:
+    uses: HowToLose/poe-trade-bot/.github/workflows/deploy.yml@main
+    secrets:
+      ssh_private_key: ${{ secrets.SSH_PRIVATE_KEY }}
+      deploy_host: ${{ secrets.DEPLOY_HOST }}
