@@ -1,5 +1,7 @@
+from glob import glob
+import discord
 from discord.ext import commands
-from discord_components import DiscordComponents, ComponentsBot, Button, SelectOption, Select
+from discord_components import DiscordComponents, ComponentsBot, Button, ButtonStyle, SelectOption, Select
 import requests
 import base64
 import json
@@ -30,9 +32,50 @@ class SearchOptions():
         return self.league
 
 
+class Item():
+    def __init__(self, details):
+        self.id = details["id"]
+        self.icon = details["item"]["icon"]
+        self.name = details["item"]["name"]
+        self.type = details["item"]["typeLine"]
+        self.description = base64.b64decode(
+            details["item"]["extended"]["text"])
+        self.description = self.description.decode('utf-8')[:-1]
+        self.whisper = details["listing"]["whisper"]
+        self.price = details["listing"]["price"]
+
+    def get_reply_text(self):
+        return f'{self.name} {self.type} : {self.price["amount"]:.1f} {self.price["currency"]}'
+
+    async def get_detail_reply(self, interaction):
+
+        description = self.description
+        description = description.split('--------\r\n')[1:]
+        description = str.join('', description)
+        description = description.replace('\r', '\n')
+
+        embed = discord.Embed(
+            title=f'{self.name} {self.type}', description=description)
+        embed.set_thumbnail(url=self.icon)
+        embed.add_field(
+            name="價格", value=f'{self.price["amount"]:.1f} {self.price["currency"]}\n', inline=False)
+        embed.add_field(name="密語", value=f'{self.whisper}', inline=False)
+        await interaction.send(embed=embed)
+
+    def get_button(self):
+
+        return Button(style=ButtonStyle.gray, label=f'{self.get_reply_text()}', custom_id=self.id)
+
+    def get_callback(self):
+
+        return self.get_detail_reply
+
+
 class Trade(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
+        self.items = []
+        self.last_reply = None
 
     @commands.command()
     async def search(self, ctx, link):
@@ -50,30 +93,19 @@ class Trade(commands.Cog):
         search_result = r.json()
 
         r = requests.get(
-            f'{os.getenv("POE_API_BASE")}/trade/fetch/{str.join(",", search_result["result"][:10])}?query={search_result["id"]}', headers=headers)
-        items = r.json()["result"]
+            f'{os.getenv("POE_API_BASE")}/trade/fetch/{str.join(",", search_result["result"][:5])}?query={search_result["id"]}', headers=headers)
 
-        selection = await ctx.send("請選擇想要的物品", components=[
-            Select(
-                placeholder="請選擇",
-                options=[
-                    SelectOption(label=f'{o["item"]["name"]} {o["item"]["typeLine"]} : {o["listing"]["price"]["amount"]:>10.1f} {o["listing"]["price"]["currency"]}', value=o["item"]["id"]) for o in items
-                ]
-            )
-        ])
+        self.items = r.json()["result"]
+        self.items = [Item(item) for item in self.items]
 
-        try:
-            select_interaction = await self.bot.wait_for("select_option")
-            target_item = next((x for x in items if x["id"] == select_interaction.values[0]), None)
-            details = base64.b64decode(target_item["item"]["extended"]["text"])
-            details = details.decode('utf-8')[:-1]
-            details = f'{details}\n--------\n價格： {target_item["listing"]["price"]["amount"]:.1f} {target_item["listing"]["price"]["currency"]}\n--------\n{target_item["listing"]["whisper"]}'
-            await select_interaction.send(content=details, ephemeral=False)
-            await selection.delete()
-
-        except:
-            await ctx.send("Something wrong.")
-
+        await ctx.send(
+            "搜尋的結果如下：",
+            components=[
+                self.bot.components_manager.add_callback(
+                    item.get_button(), item.get_callback()
+                ) for item in self.items
+            ],
+        )
 
 def setup(bot):
     bot.add_cog(Trade(bot))
