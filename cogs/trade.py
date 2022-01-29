@@ -22,6 +22,7 @@ class SearchOptions():
 
         self.query = tmp["state"]
 
+
     def get_config(self):
         return json.dumps({
             "query": self.query,
@@ -45,6 +46,7 @@ class Item():
         self.price = details["listing"]["price"]
 
     def get_reply_text(self):
+
         return f'{self.name} {self.type} : {self.price["amount"]:.1f} {self.price["currency"]}'
 
     async def get_detail_reply(self, interaction):
@@ -75,7 +77,6 @@ class Trade(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
         self.items = []
-        self.last_reply = None
 
     @commands.command()
     async def search(self, ctx, link):
