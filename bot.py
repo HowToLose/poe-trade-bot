@@ -21,11 +21,11 @@ async def on_ready():
     load_cogs()
     print('------' * 5)
 
-@bot.event
-async def on_command_error(ctx, error):
-    await ctx.send('嘔幹！你在亂打三小拉！')
-    await ctx.send('可以用的指令有：')
-    await ctx.send('search < POE 交易所搜尋結果 URL >')
+# @bot.event
+# async def on_command_error(ctx, error):
+#     await ctx.send('嘔幹！你在亂打三小拉！')
+#     await ctx.send('可以用的指令有：')
+#     await ctx.send('search < POE 交易所搜尋結果 URL >')
 
 
 def load_cogs():
