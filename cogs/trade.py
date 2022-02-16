@@ -1,4 +1,4 @@
-from asyncio import tasks
+from asyncio import tasks, sleep
 from glob import glob
 from time import sleep
 import discord
@@ -94,7 +94,7 @@ class Task():
     def get_user(self):
         return self.user
 
-    async def get_items(self):
+    def get_items(self):
 
         req = requests.get(self.link)
 
@@ -108,33 +108,47 @@ class Task():
             f'{os.getenv("POE_API_BASE")}/trade/search/{config.get_league()}', headers=headers, data=config.get_config())
         search_result = r.json()
 
-        r = requests.get(
-            f'{os.getenv("POE_API_BASE")}/trade/fetch/{str.join(",", search_result["result"][:5])}?query={search_result["id"]}', headers=headers)
+        if (search_result["total"] == 0):
 
-        items = r.json()["result"]
-        items = [Item(item) for item in items]
+            return []
 
-        self.reply = await self.ctx.send(
-            f"{self.user.mention} {self.name} 的搜尋的結果如下：",
-            components=[
-                self.bot.components_manager.add_callback(
-                    item.get_button(), item.get_callback()
-                ) for item in items
-            ],
-        )
+        else:
+            r = requests.get(
+                f'{os.getenv("POE_API_BASE")}/trade/fetch/{str.join(",", search_result["result"][:5])}?query={search_result["id"]}', headers=headers)
+
+            items = r.json()["result"]
+
+            return [Item(item) for item in items]
+
+        
 
     async def run(self):
         if (self.reply is not None):
             await self.reply.delete()
 
-        await self.get_items()
+        items =  self.get_items()
+
+        if (len(items) == 0):
+
+            self.reply = await self.ctx.send(f"{self.user.mention} {self.name} 的搜尋沒有結果。")
+
+        else:
+
+            self.reply = await self.ctx.send(
+                f"{self.user.mention} {self.name} 的搜尋的結果如下：",
+                components=[
+                    self.bot.components_manager.add_callback(
+                        item.get_button(), item.get_callback()
+                    ) for item in items
+                ],
+            )
 
     def validate(self):
 
         req = requests.get(self.link)
 
         try:
-            config = SearchOptions(req.text)
+            SearchOptions(req.text)
             return True
 
         except:
@@ -151,7 +165,7 @@ class Trade(commands.Cog):
         # for task
         self.tasks = []
         self.index = 0
-        self.max = 60
+        self.max = 30
 
         # for timer
         self.timer.start()
@@ -159,49 +173,30 @@ class Trade(commands.Cog):
     @commands.command()
     async def search(self, ctx, link):
 
-        req = requests.get(link)
+        new_task = Task(self.bot, ctx, ctx.author, "", link)
 
-        config = SearchOptions(req.text)
-
-        headers = {
-            'Content-Type': 'application/json'
-        }
-
-        r = requests.post(
-            f'{os.getenv("POE_API_BASE")}/trade/search/{config.get_league()}', headers=headers, data=config.get_config())
-        search_result = r.json()
-
-        r = requests.get(
-            f'{os.getenv("POE_API_BASE")}/trade/fetch/{str.join(",", search_result["result"][:5])}?query={search_result["id"]}', headers=headers)
-
-        self.items = r.json()["result"]
-        self.items = [Item(item) for item in self.items]
-
-        await ctx.send(
-            "搜尋的結果如下：",
-            components=[
-                self.bot.components_manager.add_callback(
-                    item.get_button(), item.get_callback()
-                ) for item in self.items
-            ],
-        )
+        if (new_task.validate()):
+            await new_task.run()
+        
+        else:
+            await ctx.send(f"{ctx.author.mention} 你給的連結似乎有點問題。")
 
     @commands.command()
-    async def task(self, ctx, name, link):
+    async def task(self, ctx, task_name, link):
 
-        new_task = Task(self.bot, ctx, ctx.author, name, link)
+        new_task = Task(self.bot, ctx, ctx.author, task_name, link)
 
         if (len(self.tasks) + 1 > 60):
-            await ctx.send(f"{ctx.author.mention} 目前佇列已滿（上限：60)，請先刪除部分任務後再新增。")
+            await ctx.send(f"{ctx.author.mention} 目前佇列已滿（上限：{self.max})，請先刪除部分任務後再新增。")
 
         elif (new_task.validate()):
 
-            self.tasks.append(Task(self.bot, ctx, ctx.author, name, link))
-            await ctx.send(f"{ctx.author.mention} 已註冊搜尋： {name}。")
+            self.tasks.append(Task(self.bot, ctx, ctx.author, task_name, link))
+            await ctx.send(f"{ctx.author.mention} 已註冊搜尋： {task_name}。")
         
         else:
 
-            await ctx.send(f"{ctx.author.mention} {name} 的註冊出了些問題，你確定你的搜尋條件是這季的嗎？")
+            await ctx.send(f"{ctx.author.mention} {task_name} 的註冊出了些問題，你確定你的搜尋條件是這季的嗎？")
 
 
         
@@ -215,7 +210,7 @@ class Trade(commands.Cog):
 
             for idx, task in enumerate(self.tasks):
                 button = Button(style=ButtonStyle.red,
-                         label=f'刪除 {idx} : {task.get_name()} ({task.get_user().name})', custom_id=task.get_id())
+                         label=f'刪除 {task.get_name()} ({task.get_user().name})', custom_id=task.get_id())
                 
                 async def callback(interaction):
 
@@ -234,6 +229,20 @@ class Trade(commands.Cog):
                         )
 
                 components.append(self.bot.components_manager.add_callback(button, callback))
+
+
+            # Button to remove list message
+
+            removeBtn = Button(style=ButtonStyle.blue,
+                        label=f'刪除此列表', custom_id=str(uuid4()))
+
+            async def removeCb(interaction):
+                await interaction.edit_origin(
+                    "*此訊息已被刪除。*",
+                    components = []
+                )
+
+            components.append(self.bot.components_manager.add_callback(removeBtn, removeCb))
 
             return components
 
