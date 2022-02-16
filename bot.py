@@ -23,12 +23,7 @@ async def on_ready():
 
 @bot.event
 async def on_command_error(ctx, error):
-    await ctx.send('嘔幹！你在亂打三小拉！')
-    await ctx.send('可以用的指令有：')
-    await ctx.send('search < POE 交易所搜尋結果 URL >')
-    await ctx.send('task 任務名稱 < POE 交易所搜尋結果 URL >')
-    await ctx.send('list')
-
+    await ctx.send('嘔幹！你在亂打三小拉！\n可以使用 help 指令來查看可用指令。')
 
 def load_cogs():
 
