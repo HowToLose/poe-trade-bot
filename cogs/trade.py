@@ -85,6 +85,8 @@ class Task():
         self.link = link
         self.reply = None
 
+        self.batch_size = 5
+
     def get_id(self):
         return self.id
 
@@ -104,31 +106,45 @@ class Task():
             'Content-Type': 'application/json'
         }
 
-        r = requests.post(
-            f'{os.getenv("POE_API_BASE")}/trade/search/{config.get_league()}', headers=headers, data=config.get_config())
-        search_result = r.json()
+        try:
+
+            r = requests.post(
+                f'{os.getenv("POE_API_BASE")}/trade/search/{config.get_league()}', headers=headers, data=config.get_config())
+            search_result = r.json()
+
+        except:
+            
+            return [], "機器人在搜尋物品時出了一些問題。"
 
         if (search_result["total"] == 0):
 
-            return []
+            return [], None
 
-        else:
+        try:
+
             r = requests.get(
-                f'{os.getenv("POE_API_BASE")}/trade/fetch/{str.join(",", search_result["result"][:5])}?query={search_result["id"]}', headers=headers)
+                f'{os.getenv("POE_API_BASE")}/trade/fetch/{str.join(",", search_result["result"][:self.batch_size])}?query={search_result["id"]}', headers=headers)
 
-            items = r.json()["result"]
+            items = r.json()
 
-            return [Item(item) for item in items]
+            return [Item(item) for item in items["result"]], None
+        
+        except:
 
+            return [], "機器人在取得物品資訊的時候出了些問題。"
         
 
     async def run(self):
         if (self.reply is not None):
             await self.reply.delete()
 
-        items =  self.get_items()
+        items, err =  self.get_items()
 
-        if (len(items) == 0):
+        if err is not None:
+
+            self.reply = await self.ctx.send(f"{self.user.mention} 搜尋 {self.name} 時 {err}。")
+
+        elif (len(items) == 0):
 
             self.reply = await self.ctx.send(f"{self.user.mention} {self.name} 的搜尋沒有結果。")
 
@@ -165,7 +181,7 @@ class Trade(commands.Cog):
         # for task
         self.tasks = []
         self.index = 0
-        self.max = 30
+        self.max_tasks = 30
 
         # for timer
         self.timer.start()
@@ -186,8 +202,8 @@ class Trade(commands.Cog):
 
         new_task = Task(self.bot, ctx, ctx.author, task_name, link)
 
-        if (len(self.tasks) + 1 > 60):
-            await ctx.send(f"{ctx.author.mention} 目前佇列已滿（上限：{self.max})，請先刪除部分任務後再新增。")
+        if (len(self.tasks) + 1 > self.max_tasks):
+            await ctx.send(f"{ctx.author.mention} 目前佇列已滿（上限：{self.max_tasks})，請先刪除部分任務後再新增。")
 
         elif (new_task.validate()):
 
@@ -255,7 +271,7 @@ class Trade(commands.Cog):
     @tasks.loop(minutes=1.0)
     async def timer(self):
 
-        self.index = (self.index + 1) % self.max
+        self.index = (self.index + 1) % self.max_tasks
 
         if (len(self.tasks) > 0 and len(self.tasks) > self.index):
             await self.tasks[self.index].run()
