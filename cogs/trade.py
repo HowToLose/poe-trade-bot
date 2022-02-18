@@ -224,13 +224,15 @@ class Trade(commands.Cog):
 
             components = []
 
-            for idx, task in enumerate(self.tasks):
+            for task in self.tasks:
                 button = Button(style=ButtonStyle.red,
                          label=f'刪除 {task.get_name()} ({task.get_user().name})', custom_id=task.get_id())
                 
                 async def callback(interaction):
 
-                    del self.tasks[idx]
+                    for (idx, item) in enumerate(self.tasks):
+                        if item.get_id() == interaction.custom_id:
+                            del self.tasks[idx]
 
                     updated_components = get_list()
 
