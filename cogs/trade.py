@@ -258,7 +258,7 @@ class Trade(commands.Cog):
             # Button to remove list message
 
             removeBtn = Button(style=ButtonStyle.blue,
-                        label=f'刪除此列表', custom_id=str(uuid4()))
+                        label=f'關閉此列表', custom_id=str(uuid4()))
 
             async def removeCb(interaction):
                 await interaction.edit_origin(
