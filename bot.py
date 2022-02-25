@@ -24,6 +24,7 @@ async def on_ready():
 @bot.event
 async def on_command_error(ctx, error):
     await ctx.send('嘔幹！你在亂打三小拉！\n可以使用 help 指令來查看可用指令。')
+    await ctx.send(f"錯誤訊息：\n{error}")
 
 def load_cogs():
 
