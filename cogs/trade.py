@@ -136,7 +136,13 @@ class Task():
 
     async def run(self):
         if (self.reply is not None):
-            await self.reply.delete()
+            try:
+
+                await self.reply.delete()
+
+            except:
+
+                await self.ctx.send("刪除前次結果發生錯誤。")
 
         items, err =  self.get_items()
 
